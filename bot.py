@@ -1,4 +1,4 @@
-import logging, random, itertools
+import logging, random, itertools, asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -35,12 +35,30 @@ async def cb(u: Update, c: ContextTypes.DEFAULT_TYPE):
     elif q.data == "v":
         await c.bot.send_message(chat_id=q.message.chat_id, text="🔒 **ACCÈS PREMIUM VIP**\nTarif : **20.00 €**", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Payer 20€ via Paysafecard", url="https://paysafecard.com")]]))
 
-def main():
+async def run_bot():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(cb))
-    print("\n🚀 BOT EN LIGNE !")
-    app.run_polling()
+    
+    # Initialisation explicite et sécurisée de la boucle d'événements asynchrone
+    await app.initialize()
+    await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+    await app.start()
+    print("\n🚀 INFRASTRUCTURE HÉBERGÉE EN LIGNE ET PRÊTE H24 !")
+    
+    # Maintient le serveur éveillé sans consommer de ressources inutilement
+    while True:
+        await asyncio.sleep(3600)
+
+def main():
+    # Force la création d'une boucle d'événements propre pour Python 3.14+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+    loop.run_until_complete(run_bot())
 
 if __name__ == '__main__':
     main()
