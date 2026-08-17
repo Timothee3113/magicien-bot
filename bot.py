@@ -1,3 +1,4 @@
+import os
 import logging
 import requests
 from bs4 import BeautifulSoup
@@ -11,8 +12,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 🔑 Votre Token Telegram est maintenant intégré
-TOKEN = "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw"
+# Récupération sécurisée du Token et de l'URL via Render (Évite les blocages de GitHub)
+TOKEN = os.environ.get("TELEGRAM_TOKEN", "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw")
+BOT_URL = os.environ.get("RENDER_EXTERNAL_URL") 
 
 # 2. Extracteur de Données Pronosoft (Liste ParionsSport)
 def get_pronosoft_data():
@@ -37,16 +39,18 @@ def get_pronosoft_data():
         
         for row in rows:
             cols = row.find_all('td')
+            # Correction du bug : cols est une liste, on doit extraire le texte colonne par colonne
             if len(cols) >= 5:
-                teams = cols.text.strip().split(' - ')
+                match_text = cols[1].text.strip() if len(cols) > 1 else ""
+                teams = match_text.split(' - ')
                 if len(teams) == 2:
                     try:
                         matches.append({
-                            "home": teams.strip(),
-                            "away": teams.strip(),
-                            "1": float(cols.text.replace(',', '.').strip()),
-                            "N": float(cols.text.replace(',', '.').strip()),
-                            "2": float(cols.text.replace(',', '.').strip())
+                            "home": teams[0].strip(),
+                            "away": teams[1].strip(),
+                            "1": float(cols[2].text.replace(',', '.').strip()),
+                            "N": float(cols[3].text.replace(',', '.').strip()),
+                            "2": float(cols[4].text.replace(',', '.').strip())
                         })
                     except:
                         continue
@@ -80,7 +84,7 @@ def get_betclic_sports_data():
 def generate_report():
     foot_data = get_pronosoft_data()
     # Recherche automatique du match de Brøndby
-    brondby_match = next((m for m in foot_data if "Brøndby" in m['home']), foot_data)
+    brondby_match = next((m for m in foot_data if "Brøndby" in m['home']), foot_data[0])
     
     extra_sports = get_betclic_sports_data()
     basket = extra_sports["basketball"]
@@ -132,13 +136,13 @@ def generate_report():
 
 # 5. Gestionnaire de Réception de la commande Telegram /algo
 async def start_algo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    print(f"📥 Commande reçue de l'ID utilisateur : {update.effective_user.id}")
+    logger.info(f"📥 Commande reçue de l'ID utilisateur : {update.effective_user.id}")
     try:
         report_text = generate_report()
         await update.message.reply_text(report_text, disable_web_page_preview=True)
-        print("📤 Rapport envoyé avec succès sur Telegram !")
+        logger.info("📤 Rapport envoyé avec succès sur Telegram !")
     except Exception as e:
-        print(f"❌ Erreur lors de l'envoi du message : {e}")
+        logger.error(f"❌ Erreur lors de l'envoi du message : {e}")
 
 # 6. Lancement et exécution principale du programme
 def main():
@@ -146,14 +150,25 @@ def main():
         application = Application.builder().token(TOKEN).build()
         application.add_handler(CommandHandler("algo", start_algo))
         
-        print("⚡ Initialisation de la connexion avec Telegram...")
-        print("🚀 LE BOT EST EN LIGNE ET CONFIGURÉ ! Envoyez /algo dans votre chat Telegram.")
-        
-        # Le paramètre drop_pending_updates=True efface le flux de messages accumulés
-        application.run_polling(drop_pending_updates=True)
+        # Mode d'exécution Webhook pour Render
+        if BOT_URL:
+            port = int(os.environ.get("PORT", 5000))
+            logger.info(f"⚡ Démarrage en mode WEBHOOK sur le port {port}...")
+            application.run_webhook(
+                listen="0.0.0.0",
+                port=port,
+                url_path=TOKEN,
+                webhook_url=f"{BOT_URL}/{TOKEN}",
+                drop_pending_updates=True
+            )
+        else:
+            # Mode local de secours si RENDER_EXTERNAL_URL n'est pas défini
+            logger.info("🚀 Démarrage en mode POLLING (Local)...")
+            application.run_polling(drop_pending_updates=True)
         
     except Exception as e:
-        print(f"❌ Erreur fatale au lancement du bot : {e}")
+        logger.error(f"❌ Erreur fatale au lancement du bot : {e}")
 
 if __name__ == '__main__':
     main()
+
