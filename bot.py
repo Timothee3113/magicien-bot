@@ -2,11 +2,15 @@ import logging
 import asyncio
 import datetime
 import random
+import os  # Essentiel pour lire les clés de Render
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 logging.basicConfig(level=logging.INFO)
-TELEGRAM_TOKEN = "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw"
+logger = logging.getLogger(__name__)
+
+# Récupération automatique du vrai Token que vous avez collé dans l'onglet Environment
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw")
 LIEN_PAIEMENT = "https://paysafecard.com"
 
 SPORTS_DATA = {
@@ -48,7 +52,6 @@ def clavier():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    # Message de bienvenue automatique et percutant
     accueil = (
         f"👋 **Bienvenue {user.first_name} chez Le Magicien des Pronos !**\n\n"
         f"🤖 Mon algorithme scanne les cotes mondiales 24h/24 pour détecter les erreurs des bookmakers.\n\n"
@@ -76,6 +79,9 @@ async def cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=q.message.chat_id, text=f"🔒 **ESPACE PREMIUM VIP MULTI-SPORTS**\n\nAccédez à l'intégralité des signaux d'anomalies de cotes mondiales (WNBA, Foot, Tennis).\n\n💶 Tarif Unique : **20.00 €**\n📥 _Réglez via Paysafecard :_ {LIEN_PAIEMENT}", parse_mode="Markdown")
 
 def main():
+    if not TELEGRAM_TOKEN or ":" not in TELEGRAM_TOKEN:
+        print("❌ ERREUR : Le TELEGRAM_TOKEN est invalide ou absent de l'onglet Environment de Render.")
+        return
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(cb))
@@ -83,3 +89,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
