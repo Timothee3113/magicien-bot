@@ -4,22 +4,22 @@ from bs4 import BeautifulSoup
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# 1. Configuration des logs visibles dans la console de votre terminal
+# 1. Configuration des logs pour voir l'activité du bot en temps réel
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# ⚠️ PLACEZ VOTRE TOKEN ENTRE LES GUILLEMETS ICI
-TOKEN = "VOTRE_TELEGRAM_BOT_TOKEN"
+# 🔑 Votre Token Telegram est maintenant intégré
+TOKEN = "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw"
 
 # 2. Extracteur de Données Pronosoft (Liste ParionsSport)
 def get_pronosoft_data():
     url = "https://pronosoft.com"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     
-    # Base de données de secours si le site est momentanément indisponible
+    # Base de données de secours (Fallback) si le site refuse la connexion
     fallback_matches = [
         {"home": "Brøndby", "away": "Sønderjyske", "1": 1.32, "N": 4.55, "2": 6.30},
         {"home": "La Corogne", "away": "Elche", "1": 2.25, "N": 3.10, "2": 3.50},
@@ -42,11 +42,11 @@ def get_pronosoft_data():
                 if len(teams) == 2:
                     try:
                         matches.append({
-                            "home": teams[0].strip(),
-                            "away": teams[1].strip(),
-                            "1": float(cols[2].text.replace(',', '.').strip()),
-                            "N": float(cols[3].text.replace(',', '.').strip()),
-                            "2": float(cols[4].text.replace(',', '.').strip())
+                            "home": teams.strip(),
+                            "away": teams.strip(),
+                            "1": float(cols.text.replace(',', '.').strip()),
+                            "N": float(cols.text.replace(',', '.').strip()),
+                            "2": float(cols.text.replace(',', '.').strip())
                         })
                     except:
                         continue
@@ -79,8 +79,8 @@ def get_betclic_sports_data():
 # 4. Générateur Automatique du Rapport Algorithmique
 def generate_report():
     foot_data = get_pronosoft_data()
-    # Recherche spécifique du match de Brøndby
-    brondby_match = next((m for m in foot_data if "Brøndby" in m['home']), foot_data[0])
+    # Recherche automatique du match de Brøndby
+    brondby_match = next((m for m in foot_data if "Brøndby" in m['home']), foot_data)
     
     extra_sports = get_betclic_sports_data()
     basket = extra_sports["basketball"]
@@ -99,7 +99,7 @@ def generate_report():
         f"🎯 Intitulé du Pari : Victoire de {brondby_match['home']} (Pari 1N2)\n"
         f"📊 Cote Betclic : {brondby_match['1']} | ⚠️ Fiabilité : ⭐️⭐️⭐️⭐️⭐️\n"
         "📈 Indice de Value : +6.2% | 💰 Mise conseillée : 40.00 €\n"
-        f"📝 Actu & Forme : {brondby_match['home']} est sur une série de 4 victoires à domicile. Stats favorables.\n\n"
+        f"📝 Actu & Forme : {brondby_match['home']} reste sur une solide série à domicile. Statistiques très favorables.\n\n"
         "📊 Pari Simple n°2 — BASKETBALL (WNBA)\n"
         f"⚔️ Rencontre : {basket['match']}\n"
         f"🎯 Intitulé du Pari : {basket['market']}\n"
@@ -140,24 +140,20 @@ async def start_algo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     except Exception as e:
         print(f"❌ Erreur lors de l'envoi du message : {e}")
 
-# 6. Lancement du Bot et Nettoyage de la File d'Attente
+# 6. Lancement et exécution principale du programme
 def main():
-    if TOKEN == "VOTRE_TELEGRAM_BOT_TOKEN" or not TOKEN:
-        print("❌ ERREUR : Vous devez remplacer 'VOTRE_TELEGRAM_BOT_TOKEN' à la ligne 14 par votre vrai Token !")
-        return
-
     try:
         application = Application.builder().token(TOKEN).build()
         application.add_handler(CommandHandler("algo", start_algo))
         
         print("⚡ Initialisation de la connexion avec Telegram...")
-        print("🚀 Le Bot est EN LIGNE ! Envoyez /algo dans votre application Telegram.")
+        print("🚀 LE BOT EST EN LIGNE ET CONFIGURÉ ! Envoyez /algo dans votre chat Telegram.")
         
-        # Le paramètre drop_pending_updates=True supprime les messages bloqués du passé
+        # Le paramètre drop_pending_updates=True efface le flux de messages accumulés
         application.run_polling(drop_pending_updates=True)
         
     except Exception as e:
-        print(f"❌ Le bot n'a pas pu démarrer. Cause : {e}")
+        print(f"❌ Erreur fatale au lancement du bot : {e}")
 
 if __name__ == '__main__':
     main()
