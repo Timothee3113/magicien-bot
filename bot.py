@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -8,8 +9,11 @@ TELEGRAM_TOKEN = "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw"
 LIEN_PAIEMENT = "https://paysafecard.com"
 
 def generer_ticket_immediat():
+    # Détermination dynamique et automatique de la date du jour J en temps réel
+    date_du_jour = datetime.datetime.now().strftime('%d/%m/%Y')
+    
     return (
-        "🧙‍♂️ 🟩 **[TICKET OFFICIEL DU JOUR] — 17/08/2026**\n"
+        f"🧙‍♂️ 🟩 **[TICKET OFFICIEL DU JOUR] — {date_du_jour}**\n"
         "========================================\n\n"
         "🎯 **LES TICKETS SIMPLES (Mise Max 50€) :**\n"
         "----------------------------------------\n"
