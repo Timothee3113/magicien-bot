@@ -2,26 +2,30 @@ import os
 import logging
 import requests
 from bs4 import BeautifulSoup
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from flask import Flask, request
+import telebot
 
-# 1. Configuration des logs pour voir l'activité du bot en temps réel
+# 1. Configuration des logs pour suivre l'activité sur le tableau de bord Render
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Récupération sécurisée du Token et de l'URL via Render (Évite les blocages de GitHub)
+# 🔑 Récupération du Token et de l'URL publique de Render
 TOKEN = os.environ.get("TELEGRAM_TOKEN", "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw")
 BOT_URL = os.environ.get("RENDER_EXTERNAL_URL") 
 
-# 2. Extracteur de Données Pronosoft (Liste ParionsSport)
+# Initialisation sécurisée du bot et du micro-serveur Flask
+bot = telebot.TeleBot(TOKEN, threaded=False)
+app = Flask(__name__)
+
+# 2. Extracteur de Données Pronosoft (Entièrement corrigé)
 def get_pronosoft_data():
     url = "https://pronosoft.com"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     
-    # Base de données de secours (Fallback) si le site refuse la connexion
+    # Base de données de secours (Fallback) si le site bloque la requête
     fallback_matches = [
         {"home": "Brøndby", "away": "Sønderjyske", "1": 1.32, "N": 4.55, "2": 6.30},
         {"home": "La Corogne", "away": "Elche", "1": 2.25, "N": 3.10, "2": 3.50},
@@ -39,8 +43,8 @@ def get_pronosoft_data():
         
         for row in rows:
             cols = row.find_all('td')
-            # Correction du bug : cols est une liste, on doit extraire le texte colonne par colonne
             if len(cols) >= 5:
+                # Correction du crash : on extrait le texte cellule par cellule
                 match_text = cols[1].text.strip() if len(cols) > 1 else ""
                 teams = match_text.split(' - ')
                 if len(teams) == 2:
@@ -59,7 +63,7 @@ def get_pronosoft_data():
         logger.error(f"Erreur scraping Pronosoft : {e}")
         return fallback_matches
 
-# 3. Base de Données Betclic : Basket (WNBA) et Baseball (MLB)
+# 3. Base de Données Betclic de simulation
 def get_betclic_sports_data():
     return {
         "basketball": {
@@ -83,19 +87,16 @@ def get_betclic_sports_data():
 # 4. Générateur Automatique du Rapport Algorithmique
 def generate_report():
     foot_data = get_pronosoft_data()
-    # Recherche automatique du match de Brøndby
     brondby_match = next((m for m in foot_data if "Brøndby" in m['home']), foot_data[0])
     
     extra_sports = get_betclic_sports_data()
     basket = extra_sports["basketball"]
     baseball = extra_sports["baseball"]
 
-    # Calcul dynamique des mises plafonné à 50.00 euros maximum
     def calc_mise(value_index):
-        mise_brute = 35 + (value_index * 1.5)
-        return round(min(mise_brute, 50.0), 2)
+        return round(min(35 + (value_index * 1.5), 50.0), 2)
 
-    report = (
+    return (
         "🧙‍♂️ 🟩 ALGORITHME MULTI-SPORTS TOTAL — 17/08/2026\n"
         "========================================\n\n"
         "📊 Pari Simple n°1 — FOOTBALL\n"
@@ -103,7 +104,7 @@ def generate_report():
         f"🎯 Intitulé du Pari : Victoire de {brondby_match['home']} (Pari 1N2)\n"
         f"📊 Cote Betclic : {brondby_match['1']} | ⚠️ Fiabilité : ⭐️⭐️⭐️⭐️⭐️\n"
         "📈 Indice de Value : +6.2% | 💰 Mise conseillée : 40.00 €\n"
-        f"📝 Actu & Forme : {brondby_match['home']} reste sur une solide série à domicile. Statistiques très favorables.\n\n"
+        f"📝 Actu & Forme : {brondby_match['home']} reste sur une solide série à domicile.\n\n"
         "📊 Pari Simple n°2 — BASKETBALL (WNBA)\n"
         f"⚔️ Rencontre : {basket['match']}\n"
         f"🎯 Intitulé du Pari : {basket['market']}\n"
@@ -117,58 +118,50 @@ def generate_report():
         f"📈 Indice de Value : +{baseball['value']}% | 💰 Mise conseillée : {calc_mise(baseball['value'])} €\n"
         f"📝 Actu & Forme : {baseball['context']}\n\n"
         "========================================\n"
-        "🚀 LE COMBINÉ MULTI-SPORTS SAFE (Mise 25€) :\n"
+        "🚀 LE COMBINÉ MULTI-SPORTS SAFE :\n"
         "----------------------------------------\n"
-        f"1️⃣ {brondby_match['home']} vs {brondby_match['away']} ➔ Victoire {brondby_match['home']} ({brondby_match['1']})\n"
+        f"1️⃣ {brondby_match['home']} ➔ Victoire ({brondby_match['1']})\n"
         f"2️⃣ {baseball['match']} ➔ {baseball['market']} ({baseball['cote']})\n\n"
         f"📊 Cote Totale Combiné : {round(brondby_match['1'] * baseball['cote'], 2)} | 💰 Mise : 25 €\n"
-        "⚠️ CONFIANCE GLOBALE COMBINÉ : ⭐️⭐️⭐️⭐️\n"
         "========================================\n"
         "🔒 ACCÈS PREMIUM VIP — MULTI-SPORTS H24\n"
-        "----------------------------------------\n"
-        "Rejoignez le groupe pour recevoir 100% des alertes d'anomalies réelles.\n\n"
         "💶 Prix Unique : 20.00 €\n"
-        "💳 Lien d'achat sécurisé Paysafecard : https://paysafecard.com\n"
+        "💳 Lien : https://paysafecard.com\n"
         "========================================\n"
-        "⚠️ Gestion stricte de la bankroll. Mises simples bridées à 50€ maximum pour sécurité."
+        "⚠️ Mises simples bridées à 50€ maximum pour sécurité."
     )
-    return report
 
-# 5. Gestionnaire de Réception de la commande Telegram /algo
-async def start_algo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.info(f"📥 Commande reçue de l'ID utilisateur : {update.effective_user.id}")
+# 5. Gestionnaire de commandes Telegram (/algo)
+@bot.message_handler(commands=['algo'])
+def handle_algo(message):
     try:
         report_text = generate_report()
-        await update.message.reply_text(report_text, disable_web_page_preview=True)
-        logger.info("📤 Rapport envoyé avec succès sur Telegram !")
+        bot.reply_to(message, report_text, disable_web_page_preview=True)
+        logger.info(f"Rapport envoyé à l'utilisateur {message.chat.id}")
     except Exception as e:
-        logger.error(f"❌ Erreur lors de l'envoi du message : {e}")
+        logger.error(f"Erreur envoi message : {e}")
 
-# 6. Lancement et exécution principale du programme
-def main():
-    try:
-        application = Application.builder().token(TOKEN).build()
-        application.add_handler(CommandHandler("algo", start_algo))
-        
-        # Mode d'exécution Webhook pour Render
-        if BOT_URL:
-            port = int(os.environ.get("PORT", 5000))
-            logger.info(f"⚡ Démarrage en mode WEBHOOK sur le port {port}...")
-            application.run_webhook(
-                listen="0.0.0.0",
-                port=port,
-                url_path=TOKEN,
-                webhook_url=f"{BOT_URL}/{TOKEN}",
-                drop_pending_updates=True
-            )
-        else:
-            # Mode local de secours si RENDER_EXTERNAL_URL n'est pas défini
-            logger.info("🚀 Démarrage en mode POLLING (Local)...")
-            application.run_polling(drop_pending_updates=True)
-        
-    except Exception as e:
-        logger.error(f"❌ Erreur fatale au lancement du bot : {e}")
+# 6. Routage HTTP Flask pour la réception des Webhooks de Telegram
+@app.route('/' + TOKEN, methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return 'OK', 200
+    return 'Forbidden', 403
 
-if __name__ == '__main__':
-    main()
+@app.route('/')
+def home():
+    return "Bot de calcul en ligne et fonctionnel !", 200
+
+# 7. Exécution et liaison automatique du Webhook
+if __name__ == "__main__":
+    if BOT_URL:
+        bot.remove_webhook()
+        bot.set_webhook(url=BOT_URL + '/' + TOKEN)
+        logger.info(f"Webhook lié avec succès à l'adresse : {BOT_URL}")
+    
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
 
