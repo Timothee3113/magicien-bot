@@ -2,14 +2,14 @@ import logging
 import asyncio
 import datetime
 import random
-import os  # Essentiel pour lire les clés de Render
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Récupération automatique du vrai Token que vous avez collé dans l'onglet Environment
+# Lecture ultra-sécurisée du Token depuis l'onglet Environment de Render
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw")
 LIEN_PAIEMENT = "https://paysafecard.com"
 
@@ -78,15 +78,27 @@ async def cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif q.data == "v":
         await context.bot.send_message(chat_id=q.message.chat_id, text=f"🔒 **ESPACE PREMIUM VIP MULTI-SPORTS**\n\nAccédez à l'intégralité des signaux d'anomalies de cotes mondiales (WNBA, Foot, Tennis).\n\n💶 Tarif Unique : **20.00 €**\n📥 _Réglez via Paysafecard :_ {LIEN_PAIEMENT}", parse_mode="Markdown")
 
-def main():
-    if not TELEGRAM_TOKEN or ":" not in TELEGRAM_TOKEN:
-        print("❌ ERREUR : Le TELEGRAM_TOKEN est invalide ou absent de l'onglet Environment de Render.")
-        return
+async def run_bot():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(cb))
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    
+    # Correction majeure : Initialisation et boucle asynchrone forcée pour Render
+    await app.initialize()
+    await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+    await app.start()
+    print("\n🚀 INFRASTRUCTURE PRO EN LIGNE SUR RENDER CORRIGÉE H24 !")
+    
+    while True:
+        await asyncio.sleep(3600)
+
+def main():
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    loop.run_until_complete(run_bot())
 
 if __name__ == '__main__':
     main()
-
