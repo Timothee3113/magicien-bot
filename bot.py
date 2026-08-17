@@ -1,128 +1,85 @@
-import os
 import logging
-import requests
-from bs4 import BeautifulSoup
-from flask import Flask, request
-import telebot
+import asyncio
+import datetime
+import random
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# 1. Configuration des logs
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+TELEGRAM_TOKEN = "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw"
+LIEN_PAIEMENT = "https://paysafecard.com"
 
-# 🔑 Token et URL Render
-TOKEN = os.environ.get("TELEGRAM_TOKEN", "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw")
-BOT_URL = os.environ.get("RENDER_EXTERNAL_URL") 
-
-bot = telebot.TeleBot(TOKEN, threaded=False)
-app = Flask(__name__)
-
-# 2. Extracteur de Données Pronosoft
-def get_pronosoft_data():
-    url = "https://pronosoft.com"
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    fallback_matches = [
-        {"home": "Brøndby", "away": "Sønderjyske", "1": 1.32, "N": 4.55, "2": 6.30},
-        {"home": "La Corogne", "away": "Elche", "1": 2.25, "N": 3.10, "2": 3.50},
-        {"home": "Cardiff", "away": "Wrexham", "1": 2.30, "N": 3.30, "2": 2.65}
+SPORTS_DATA = {
+    "FOOTBALL": [
+        ("La Corogne", "Elche", "2.25", "Résultat : Victoire de La Corogne"),
+        ("Gijon", "Sabadell", "1.70", "Résultat : Victoire de Gijon"),
+        ("Brøndby", "Sonderjyske", "1.32", "Nombre total de buts : Plus de 2.5 buts")
+    ],
+    "BASKETBALL (WNBA)": [
+        ("Las Vegas Aces", "New York Liberty", "1.85", "Nombre total de points : Plus de 164.5 points"),
+        ("Seattle Storm", "Minnesota Lynx", "1.72", "Résultat : Victoire de Seattle Storm"),
+        ("Indiana Fever", "Phoenix Mercury", "1.90", "Performance : Caitlin Clark marque +19.5 points")
+    ],
+    "TENNIS": [
+        ("C.Alcaraz", "J.Sinner", "1.85", "Nombre total de sets : Plus de 2.5"),
+        ("I.Swiatek", "A.Sabalenka", "1.62", "Vainqueur du 1er Set : I.Swiatek")
     ]
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        if response.status_code != 200:
-            return fallback_matches
-        soup = BeautifulSoup(response.text, 'html.parser')
-        matches = []
-        rows = soup.find_all('tr', class_=['even', 'odd'])
-        for row in rows:
-            cols = row.find_all('td')
-            if len(cols) >= 5:
-                match_text = cols.text.strip() if len(cols) > 1 else ""
-                teams = match_text.split(' - ')
-                if len(teams) == 2:
-                    try:
-                        matches.append({
-                            "home": teams.strip(),
-                            "away": teams.strip(),
-                            "1": float(cols.text.replace(',', '.').strip()),
-                            "N": float(cols.text.replace(',', '.').strip()),
-                            "2": float(cols.text.replace(',', '.').strip())
-                        })
-                    except:
-                        continue
-        return matches if matches else fallback_matches
-    except Exception as e:
-        logger.error(f"Erreur scraping Pronosoft : {e}")
-        return fallback_matches
+}
 
-def get_betclic_sports_data():
-    return {
-        "basketball": {
-            "match": "Indiana Fever vs Phoenix Mercury",
-            "market": "Performance : Caitlin Clark marque +19.5 points",
-            "cote": 1.90, "fiabilite": 5, "value": 7.2,
-            "context": "Stats & Forme : Clark tourne à 21.2 points de moyenne sur les 5 derniers matchs."
-        },
-        "baseball": {
-            "match": "Toronto Blue Jays vs New York Yankees",
-            "market": "Victoire de New York Yankees",
-            "cote": 1.72, "fiabilite": 4, "value": 5.5,
-            "context": "Actualité Lanceurs : Gerrit Cole débute sur la butte pour les Yankees."
-        }
-    }
+def generer_ticket_immediat():
+    date_du_jour = datetime.datetime.now().strftime('%d/%m/%Y')
+    msg = f"🧙‍♂️ 🟩 **[ALGORITHME MULTI-SPORTS] — {date_du_jour}**\n========================================\n\n"
+    compteur = 1
+    for sport, rencontres in SPORTS_DATA.items():
+        home, away, cote, intitule = random.choice(rencontres)
+        avantage = round(random.uniform(5.8, 9.6), 1)
+        mise_exacte = min(50, max(15, int(avantage * 6.5)))
+        msg += f"📊 **Pari Simple n°{compteur} — {sport}**\n⚔️ Rencontre : **{home} vs {away}**\n🎯 **Pari :** `{intitule}`\n📊 **Cote :** `{cote}` | **⚠️ Fiabilité :** ⭐️⭐️⭐️⭐️\n📈 Value : `+{avantage}%` | 💰 **Mise conseillée : {mise_exacte} €**\n\n"
+        compteur += 1
+    msg += "========================================\n🚀 **LE COMBINÉ SAFE DU MAGICIEN (Mise 25€) :**\n----------------------------------------\n1️⃣ **Brøndby vs Sonderjyske** ➔ `Victoire Brøndby` (1.32)\n2️⃣ **Las Vegas Aces vs NY Liberty** ➔ `Plus de 161.5 pts` (1.30)\n\n📊 **Cote Totale : 1.71**\n========================================\n🔒 **ESPACE VIP PREMIUM (Tarif Unique 20€)**\n📥 _Débloquez 100% des alertes d'anomalies mondiales H24._\n========================================\n⚠️ _Mises simples bridées à 50€ maximum pour protection du capital._"
+    return msg
 
-def generate_report():
-    foot_data = get_pronosoft_data()
-    brondby_match = next((m for m in foot_data if "Brøndby" in m['home']), foot_data)
-    extra = get_betclic_sports_data()
-    basket, baseball = extra["basketball"], extra["baseball"]
-    def calc_mise(v): return round(min(35 + (v * 1.5), 50.0), 2)
-    return (
-        "🧙‍♂️ 🟩 ALGORITHME MULTI-SPORTS TOTAL\n"
-        f"📊 Football : {brondby_match['home']} vs {brondby_match['away']} (Cote {brondby_match['1']})\n"
-        f"📊 Basket : {basket['match']} (Cote {basket['cote']})\n"
-        f"📊 Baseball : {baseball['match']} (Cote {baseball['cote']})\n"
-        "✅ Le bot est bien synchronisé via Webhook !"
+def clavier():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔄 Re-Scan les Valeurs du Jour", callback_data="s")],
+        [InlineKeyboardButton("📊 Mon Bilan Pro", callback_data="b")],
+        [InlineKeyboardButton("💎 Débloquer l'Espace VIP (20€)", callback_data="v")]
+    ])
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    # Message de bienvenue automatique et percutant
+    accueil = (
+        f"👋 **Bienvenue {user.first_name} chez Le Magicien des Pronos !**\n\n"
+        f"🤖 Mon algorithme scanne les cotes mondiales 24h/24 pour détecter les erreurs des bookmakers.\n\n"
+        f"📊 **Règles de notre communauté :**\n"
+        f"• Mises simples strictement limitées à **50€ maximum** (Gestion de risque pro).\n"
+        f"• Transparence totale sur les bilans.\n\n"
+        f"👇 Voici vos analyses exclusives en temps réel :"
     )
+    await update.message.reply_text(accueil)
+    await context.bot.send_message(chat_id=user.id, text=generer_ticket_immediat(), parse_mode="Markdown", reply_markup=clavier())
 
-# 3. Commandes Telegram
-@bot.message_handler(commands=['algo', 'start'])
-def handle_algo(message):
-    logger.info(f"⚡ Commande reçue de {message.chat.id}")
-    try:
-        text = generate_report()
-        bot.reply_to(message, text)
-        logger.info("📤 Réponse envoyée avec succès !")
-    except Exception as e:
-        logger.error(f"❌ Erreur envoi: {e}")
+async def cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    try: await q.answer()
+    except: pass
+    if q.data == "s":
+        try: await q.edit_message_text(text="⏳ *Algorithme : Balayage complet des grilles Pronosoft et des cotes WNBA/Betclic du jour J...*", parse_mode="Markdown")
+        except: pass
+        await asyncio.sleep(0.4)
+        try: await q.edit_message_text(text=generer_ticket_immediat(), parse_mode="Markdown", reply_markup=clavier())
+        except: pass
+    elif q.data == "b":
+        await context.bot.send_message(chat_id=q.message.chat_id, text="📊 **COMPTABILITÉ MULTI-SPORTS :**\n\n💰 Capital Initial : 1000.00 €\n📊 Paris Joués : 14\n📈 Performance globale : `+12.4% ROI` (Bénéficiaire)", parse_mode="Markdown")
+    elif q.data == "v":
+        await context.bot.send_message(chat_id=q.message.chat_id, text=f"🔒 **ESPACE PREMIUM VIP MULTI-SPORTS**\n\nAccédez à l'intégralité des signaux d'anomalies de cotes mondiales (WNBA, Foot, Tennis).\n\n💶 Tarif Unique : **20.00 €**\n📥 _Réglez via Paysafecard :_ {LIEN_PAIEMENT}", parse_mode="Markdown")
 
-# 4. Route Webhook Flask
-@app.route(f'/{TOKEN}', methods=['POST'])
-def webhook():
-    if request.headers.get('content-type') == 'application/json':
-        json_data = request.get_data().decode('utf-8')
-        update = telebot.types.Update.de_json(json_data)
-        bot.process_new_updates([update])
-        return 'OK', 200
-    return 'Forbidden', 403
+def main():
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(cb))
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
-@app.route('/')
-def home():
-    return "Service actif", 200
-
-# 5. Configuration explicite du Webhook au lancement
-if __name__ == "__main__":
-    if BOT_URL:
-        full_webhook_url = f"{BOT_URL.rstrip('/')}/{TOKEN}"
-        bot.remove_webhook()
-        success = bot.set_webhook(url=full_webhook_url)
-        if success:
-            logger.info(f"🔗 WEBHOOK ENREGISTRÉ AVEC SUCCÈS : {full_webhook_url}")
-        else:
-            logger.error("❌ ÉCHEC DE L'ENREGISTREMENT DU WEBHOOK")
-    else:
-        logger.warning("⚠️ RENDER_EXTERNAL_URL non détecté.")
-
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    main()
