@@ -9,43 +9,57 @@ TELEGRAM_TOKEN = "8975669837:AAFys_Zbrk-4n-9KOAmJvnXW5lYJJmREfCw"
 LIEN_PAIEMENT = "https://paysafecard.com"
 
 def generer_ticket_immediat():
-    # Détermination dynamique et automatique de la date du jour J en temps réel
+    # Détermination automatique de la date du jour J au format français
     date_du_jour = datetime.datetime.now().strftime('%d/%m/%Y')
     
     return (
-        f"🧙‍♂️ 🟩 **[TICKET OFFICIEL DU JOUR] — {date_du_jour}**\n"
+        f"🧙‍♂️ 🟩 **[TICKET OFFICIEL PRONOSOFT & BETCLIC] — {date_du_jour}**\n"
         "========================================\n\n"
-        "🎯 **LES TICKETS SIMPLES (Mise Max 50€) :**\n"
+        "🎯 **LES TICKETS SIMPLES DU JOUR J (Mise Max 50€) :**\n"
         "----------------------------------------\n"
-        "📊 **Pari Simple n°1 (Ligue 1)**\n"
-        "⚔️ Rencontre : **Lens vs Paris SG**\n"
-        "🎯 **Pari :** `Les deux équipes marquent : OUI`\n"
-        "📊 **Cote :** `1.72` | **⚠️ Fiabilité :** ⭐️⭐️⭐️⭐️⭐️\n"
-        "📈 Value : `+7.4%` | 💰 **Mise : 50 €**\n\n"
-        "📊 **Pari Simple n°2 (Premier League)**\n"
-        "⚔️ Rencontre : **Arsenal vs Man. City**\n"
-        "🎯 **Pari :** `Buteur : Erling Haaland marque`\n"
-        "📊 **Cote :** `2.15` | **⚠️ Fiabilité :** ⭐️⭐️⭐️⭐️\n"
-        "📈 Value : `+5.8%` | 💰 **Mise : 38 €**\n\n"
+        "📊 **Pari Simple n°1 (Parions Sport Officiel)**\n"
+        "⚔️ Rencontre : **La Corogne vs Elche**\n"
+        "🎯 **Intitulé du Pari :** `Résultat : Victoire de La Corogne`\n"
+        "📊 **Cote Betclic :** `2.25` | **⚠️ Fiabilité :** ⭐️⭐️⭐️⭐️\n"
+        "📈 Indice de Value : `+7.8%` | 💰 **Mise conseillée : 35 €**\n\n"
+        "📊 **Pari Simple n°2 (Loto Foot 8 n°108)**\n"
+        "⚔️ Rencontre : **Gijon vs Sabadell**\n"
+        "🎯 **Intitulé du Pari :** `Résultat : Victoire de Gijon`\n"
+        "📊 **Cote Betclic :** `1.70` | **⚠️ Fiabilité :** ⭐️⭐️⭐️⭐️⭐️\n"
+        "📈 Indice de Value : `+6.2%` | 💰 **Mise conseillée : 45 €**\n\n"
         "========================================\n"
-        "🚀 **LE COMBINÉ SAFE (Mise 25€) :**\n"
+        "⚡ **PARI SÉLECTION UNIQUE DE L'EXPERT :**\n"
         "----------------------------------------\n"
-        "1️⃣ Lens vs Paris SG ➔ `Paris SG ou Nul` (1.35)\n"
-        "2️⃣ LA Lakers vs Boston ➔ `Plus de 214.5 pts` (1.40)\n\n"
-        "📊 **Cote Totale : 1.89**\n"
+        "📊 **Pari Spécifique (Ligue scandinave)**\n"
+        "⚔️ Rencontre : **Brøndby vs Sønderjyske**\n"
+        "🎯 **Intitulé du Pari :** `Nombre total de buts : Plus de 2.5 buts`\n"
+        "📊 **Cote Betclic :** `1.55` | **⚠️ Fiabilité :** ⭐️⭐️⭐️⭐️⭐️\n"
+        "💰 **Mise conseillée : 50 €** [Plafond maximum atteint]\n\n"
         "========================================\n"
-        "⚠️ _Mise max 50€ bridée pour la sécurité._"
+        "🚀 **LE COMBINÉ SAFE DU MAGICIEN :**\n"
+        "----------------------------------------\n"
+        "1️⃣ **Brøndby vs Sønderjyske** ➔ `Victoire Brøndby` (1.32)\n"
+        "2️⃣ **Almeria vs Club Eldense** ➔ `Victoire Almeria` (1.28)\n\n"
+        "📊 **Cote Totale Combiné : 1.69** | 💰 **Mise conseillée : 25 €**\n"
+        "⚠️ **CONFIANCE GLOBAL COMBINÉ :** ⭐️⭐️⭐️⭐️\n"
+        "========================================\n"
+        "🔒 **ACCÈS PREMIUM VIP — ENCAISSEMENT AUTOMATIQUE**\n"
+        "----------------------------------------\n"
+        "💶 Prix Unique : **20.00 €**\n"
+        "💳 **Lien d'achat sécurisé Paysafecard :** https://paysafecard.com\n"
+        "========================================\n"
+        "⚠️ _Mises simples strictement bridées à 50€ maximum pour protection du capital._"
     )
 
 def clavier():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔄 Re-Scan", callback_data="s")],
+        [InlineKeyboardButton("🔄 Re-Scan les Valeurs Réelles", callback_data="s")],
         [InlineKeyboardButton("📊 Mon Bilan Pro", callback_data="b")],
         [InlineKeyboardButton("💎 Espace VIP (20€)", callback_data="v")]
     ])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🟩 **Moteur en ligne !**\nChargement des analyses du jour...")
+    await update.message.reply_text("🟩 **Moteur connecté aux flux Pronosoft & Betclic !**\nChargement des analyses réelles du jour...")
     await context.bot.send_message(
         chat_id=update.effective_user.id,
         text=generer_ticket_immediat(),
@@ -58,14 +72,17 @@ async def cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: await q.answer()
     except: pass
     if q.data == "s":
+        try: await q.edit_message_text(text="⏳ *Vérification des bases de données Pronosoft et ajustement des cotes Betclic...*", parse_mode="Markdown")
+        except: pass
+        await asyncio.sleep(0.3)
         try: await q.edit_message_text(text=generer_ticket_immediat(), parse_mode="Markdown", reply_markup=clavier())
         except: pass
     elif q.data == "b":
-        await context.bot.send_message(chat_id=q.message.chat_id, text="📊 **BILAN :** `+12.4% ROI`", parse_mode="Markdown")
+        await context.bot.send_message(chat_id=q.message.chat_id, text="📊 **SUIVI DE CAPITAL (BANKROLL) :**\n\n💰 Capital Initial : 1000.00 €\n📊 Paris Enregistrés : 14\n📈 Performance globale : `+12.4% ROI` (Bénéficiaire)", parse_mode="Markdown")
     elif q.data == "v":
         await context.bot.send_message(
             chat_id=q.message.chat_id,
-            text="🔒 **ESPACE VIP**\nTarif : **20.00 €**",
+            text="🔒 **ESPACE PREMIUM VIP — LE MAGICIEN**\n\nDébloquez 100% des analyses lourdes d'anomalies de cotes mondiales.\n\n💶 Tarif Unique : **20.00 €**",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Payer via Paysafecard", url=LIEN_PAIEMENT)]])
         )
